@@ -95,7 +95,7 @@ for sentence in sentences:
     encrypted_sentence = encryptByPlayfairCipher(Matrix, processed_sentence, non_alpha_chars)
     CipherTextList.append(encrypted_sentence)
 
-CipherText = "".join(CipherTextList)
-print("Key text:", key)
-print("Plain Text:", sentences)
+CipherText = "".join(CipherTextList).upper()  # Convert the final cipher text to uppercase
+print("Key text:", key.upper())  # Also convert key to uppercase for consistency
+print("Plain Text:", [sentence.upper() for sentence in sentences])  # Convert each sentence to uppercase
 print("CipherText:", CipherText)
