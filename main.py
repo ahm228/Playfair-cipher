@@ -79,7 +79,7 @@ def encryptByPlayfairCipher(Matrix, plainText, non_alpha_chars):
     return "".join(CipherText)
 
 # Main execution
-paragraph = "Drew sits at the desk. I sit with him."
+paragraph = input("Plaintext: " )
 sentences = split_paragraph_into_sentences(paragraph)
 
 key = "icarus"
