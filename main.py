@@ -50,13 +50,9 @@ def encrypt_RectangleRule(matr, e1r, e1c, e2r, e2c):
 def encryptByPlayfairCipher(Matrix, plainText, non_alpha_chars):
     CipherText = []
     processed_pairs = Diagraph(plainText)
-    index = 0
 
+    # Process each pair and append to CipherText
     for pair in processed_pairs:
-        while non_alpha_chars and non_alpha_chars[0][0] <= index:
-            CipherText.append(non_alpha_chars.pop(0)[1])
-            index += 1
-
         if len(pair) == 2:
             e1r, e1c = search(Matrix, pair[0])
             e2r, e2c = search(Matrix, pair[1])
@@ -68,15 +64,17 @@ def encryptByPlayfairCipher(Matrix, plainText, non_alpha_chars):
             else:
                 c1, c2 = encrypt_RectangleRule(Matrix, e1r, e1c, e2r, e2c)
 
-            CipherText.append(c1 + c2)
+            CipherText.append(c1)
+            CipherText.append(c2)
         else:
             CipherText.append(pair)
 
-        index += len(pair)
+    # Convert CipherText into a list of characters to easily insert non-alphabetic characters
+    CipherText = list("".join(CipherText))
 
-    # Append any remaining non-alphabetic characters
-    for _, char in non_alpha_chars:
-        CipherText.append(char)
+    # Insert non-alphabetic characters back into their original positions
+    for pos, char in non_alpha_chars:
+        CipherText.insert(pos, char)
 
     return "".join(CipherText)
 
