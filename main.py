@@ -1,172 +1,103 @@
-# Python program to implement Playfair Cipher
-# Function to convert the string to lowercase
- 
+import re
+
+def split_paragraph_into_sentences(paragraph):
+    # Use regex to keep the punctuation with each sentence
+    sentences = re.findall(r'[^.!?]*[.!?]', paragraph)
+    return sentences
+
 def toLowerCase(text):
     return text.lower()
- 
-# Function to remove all spaces in a string
- 
-def removeSpaces(text):
-    newText = ""
-    for i in text:
-        if i == " ":
-            continue
+
+def processTextForCipher(text):
+    # Process alphabetic characters for cipher, keep others (including spaces) as is
+    processed_text = ''
+    non_alpha_chars = []
+    for i, char in enumerate(text):
+        if char.isalpha():
+            processed_text += char
         else:
-            newText = newText + i
-    return newText
- 
-# Function to group 2 elements of a string
-# as a list element
- 
+            non_alpha_chars.append((i, char))
+    return processed_text, non_alpha_chars
+
+def replaceZwithS(text):
+    return text.replace('z', 's')
+
 def Diagraph(text):
-    Diagraph = []
-    group = 0
-    for i in range(2, len(text), 2):
-        Diagraph.append(text[group:i])
- 
-        group = i
-    Diagraph.append(text[group:])
-    return Diagraph
- 
-# Function to fill a letter in a string element
-# If 2 letters in the same string matches
- 
- 
-def FillerLetter(text):
-    k = len(text)
-    if k % 2 == 0:
-        for i in range(0, k, 2):
-            if text[i] == text[i+1]:
-                new_word = text[0:i+1] + str('x') + text[i+1:]
-                new_word = FillerLetter(new_word)
-                break
-            else:
-                new_word = text
-    else:
-        for i in range(0, k-1, 2):
-            if text[i] == text[i+1]:
-                new_word = text[0:i+1] + str('x') + text[i+1:]
-                new_word = FillerLetter(new_word)
-                break
-            else:
-                new_word = text
-    return new_word
- 
- 
-list1 = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm',
-         'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
- 
-# Function to generate the 5x5 key square matrix
- 
- 
-def generateKeyTable(word, list1):
-    key_letters = []
-    for i in word:
-        if i not in key_letters:
-            key_letters.append(i)
- 
-    compElements = []
-    for i in key_letters:
-        if i not in compElements:
-            compElements.append(i)
-    for i in list1:
-        if i not in compElements:
-            compElements.append(i)
- 
-    matrix = []
-    while compElements != []:
-        matrix.append(compElements[:5])
-        compElements = compElements[5:]
- 
+    # Do not add extra characters for odd length strings
+    return [text[i:i+2] for i in range(0, len(text), 2)]
+
+def generateKeyTable(word, alphabet):
+    key_letters = ''.join(sorted(set(word), key=word.index))  # Removing duplicates
+    matrix = [list(key_letters + ''.join([c for c in alphabet if c not in key_letters]))[i:i + 5] for i in range(0, 25, 5)]
     return matrix
- 
- 
+
 def search(mat, element):
     for i in range(5):
         for j in range(5):
-            if(mat[i][j] == element):
+            if mat[i][j] == element:
                 return i, j
- 
- 
+    raise ValueError(f"Character {element} not found in matrix")
+
 def encrypt_RowRule(matr, e1r, e1c, e2r, e2c):
-    char1 = ''
-    if e1c == 4:
-        char1 = matr[e1r][0]
-    else:
-        char1 = matr[e1r][e1c+1]
- 
-    char2 = ''
-    if e2c == 4:
-        char2 = matr[e2r][0]
-    else:
-        char2 = matr[e2r][e2c+1]
- 
-    return char1, char2
- 
- 
+    return matr[e1r][(e1c+1)%5], matr[e2r][(e2c+1)%5]
+
 def encrypt_ColumnRule(matr, e1r, e1c, e2r, e2c):
-    char1 = ''
-    if e1r == 4:
-        char1 = matr[0][e1c]
-    else:
-        char1 = matr[e1r+1][e1c]
- 
-    char2 = ''
-    if e2r == 4:
-        char2 = matr[0][e2c]
-    else:
-        char2 = matr[e2r+1][e2c]
- 
-    return char1, char2
- 
- 
+    return matr[(e1r+1)%5][e1c], matr[(e2r+1)%5][e2c]
+
 def encrypt_RectangleRule(matr, e1r, e1c, e2r, e2c):
-    char1 = ''
-    char1 = matr[e1r][e2c]
- 
-    char2 = ''
-    char2 = matr[e2r][e1c]
- 
-    return char1, char2
- 
- 
-def encryptByPlayfairCipher(Matrix, plainList):
+    return matr[e1r][e2c], matr[e2r][e1c]
+
+def encryptByPlayfairCipher(Matrix, plainText, non_alpha_chars):
     CipherText = []
-    for i in range(0, len(plainList)):
-        c1 = 0
-        c2 = 0
-        ele1_x, ele1_y = search(Matrix, plainList[i][0])
-        ele2_x, ele2_y = search(Matrix, plainList[i][1])
- 
-        if ele1_x == ele2_x:
-            c1, c2 = encrypt_RowRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
-            # Get 2 letter cipherText
-        elif ele1_y == ele2_y:
-            c1, c2 = encrypt_ColumnRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
+    processed_pairs = Diagraph(plainText)
+    index = 0
+
+    for pair in processed_pairs:
+        while non_alpha_chars and non_alpha_chars[0][0] <= index:
+            CipherText.append(non_alpha_chars.pop(0)[1])
+            index += 1
+
+        if len(pair) == 2:
+            e1r, e1c = search(Matrix, pair[0])
+            e2r, e2c = search(Matrix, pair[1])
+
+            if e1r == e2r:
+                c1, c2 = encrypt_RowRule(Matrix, e1r, e1c, e2r, e2c)
+            elif e1c == e2c:
+                c1, c2 = encrypt_ColumnRule(Matrix, e1r, e1c, e2r, e2c)
+            else:
+                c1, c2 = encrypt_RectangleRule(Matrix, e1r, e1c, e2r, e2c)
+
+            CipherText.append(c1 + c2)
         else:
-            c1, c2 = encrypt_RectangleRule(
-                Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
- 
-        cipher = c1 + c2
-        CipherText.append(cipher)
-    return CipherText
- 
- 
-text_Plain = 'instruments'
-text_Plain = removeSpaces(toLowerCase(text_Plain))
-PlainTextList = Diagraph(FillerLetter(text_Plain))
-if len(PlainTextList[-1]) != 2:
-    PlainTextList[-1] = PlainTextList[-1]+'z'
- 
-key = "Monarchy"
-print("Key text:", key)
+            CipherText.append(pair)
+
+        index += len(pair)
+
+    # Append any remaining non-alphabetic characters
+    for _, char in non_alpha_chars:
+        CipherText.append(char)
+
+    return "".join(CipherText)
+
+# Main execution
+paragraph = "Drew sits at the desk. I sit with him."
+sentences = split_paragraph_into_sentences(paragraph)
+
+key = "icarus"
 key = toLowerCase(key)
-Matrix = generateKeyTable(key, list1)
- 
-print("Plain Text:", text_Plain)
-CipherList = encryptByPlayfairCipher(Matrix, PlainTextList)
- 
-CipherText = ""
-for i in CipherList:
-    CipherText += i
+alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y']
+Matrix = generateKeyTable(key, alphabet)
+
+CipherTextList = []
+for sentence in sentences:
+    processed_sentence, non_alpha_chars = processTextForCipher(sentence)
+    processed_sentence = toLowerCase(processed_sentence)
+    processed_sentence = replaceZwithS(processed_sentence)
+    encrypted_sentence = encryptByPlayfairCipher(Matrix, processed_sentence, non_alpha_chars)
+    CipherTextList.append(encrypted_sentence)
+
+CipherText = "".join(CipherTextList)
+print("Key text:", key)
+print("Plain Text:", sentences)
 print("CipherText:", CipherText)
